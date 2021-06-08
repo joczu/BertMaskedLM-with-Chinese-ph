@@ -77,11 +77,11 @@ class MyDataset(Data.Dataset):
 
 
 if __name__ == "__main__":
-    data_path = "./vocab/vocab.txt"
+    data_path = "./train_data/train"
     batch_size = 4
     nraws = 1000
-    epoch = 3
-    train_dataset = MyDataset(data_path, nraws, shuffle=True)
+    epoch = 1
+    train_dataset = MyDataset(data_path, nraws, shuffle=False)
     for _ in range(epoch):
         train_dataset.initial()
         train_iter = Data.DataLoader(dataset=train_dataset, batch_size=batch_size)
