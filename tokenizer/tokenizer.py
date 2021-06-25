@@ -31,7 +31,7 @@ class MyTokenizer:
                                        strip_accents=None
                                        )
 
-    def tokenize(self, word_list,  p_mask:float, max_length=20, truncation=True, padding=True):
+    def tokenize(self, word_list,  p_mask:float, max_length=20, truncation=True, padding=True, islastone=False):
         inputs = self.tokenizer(word_list,
                                 return_tensors="pt",
                                 truncation=truncation,
@@ -39,7 +39,10 @@ class MyTokenizer:
                                 max_length=max_length)
         #pdb.set_trace()
         if p_mask == 0:
-            labels = None
+            if islastone:
+                inputs['input_ids'],labels = self.collate_fn2(inputs['input_ids'])
+            else:
+                labels = None
         else:
             inputs['input_ids'],labels = self.collate_fn(inputs['input_ids'], p_mask=p_mask)
         return inputs,labels
@@ -66,16 +69,30 @@ class MyTokenizer:
         random_words = torch.randint(len(self.tokenizer), labels.shape, dtype=torch.long)
         inputs[indices_random] = random_words[indices_random]
         return inputs, labels
+    def collate_fn2(self,inputs):
+        labels = inputs.clone()
+        maskid = [i-1 for val in labels.tolist()  for i in range(len(val)) if val[i]==self.tokenizer.sep_token_id]
+        for i in range(len(inputs)):
+            ind = maskid[i]
+            inputs[i][ind] = self.tokenizer.mask_token_id
+        for i in range(len(labels)):
+            for j in range(len(labels[i])):
+                if j != maskid[i]:
+                    labels[i][j] = -100
+                else:
+                    pass
+        return inputs, labels
+            
         
         
     
 
 if __name__ == '__main__':
-    mt = MyTokenizer("../vocab/vocab.txt")
+    mt = MyTokenizer("../vocab/SougouBertVocab.txt")
     sen = [' '.join(jieba.lcut('我也一度以为用制片人的钱是应该的')),' '.join(jieba.lcut('她毕业于金日成综合大学'))]
     #sen2 = jieba.lcut('她毕业于金日成综合大学')
-    #pdb.set_trace()
-    p,l = mt.tokenize(sen)
+    #     pdb.set_trace()
+    p,l = mt.tokenize(sen,p_mask=0,islastone = True)
     #p2,l2 = mt.tokenizer([' '.join(sen2)])
     print('原句为：', ' '.join(sen), '\n分词后： ',p['input_ids'], '\n标签: ',l )
     #print('\n')

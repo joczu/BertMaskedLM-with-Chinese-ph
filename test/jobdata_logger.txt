@@ -1,0 +1,2 @@
+The test model is : ./model/Jobdatamodel_epoch_9.bin
+The logger information is saved in : ./test/jobdata_logger.txt
