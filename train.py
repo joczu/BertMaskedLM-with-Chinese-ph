@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument('--usegpu', action='store_true',default=False, help="use gpu or not")
     parser.add_argument('--device', type=str, default=0)
     parser.add_argument('--load_model', type=str, default='')
+    parser.add_argument('--log_path', type=str, default='')
     parser.add_argument('--curepoch',type=int, help="what epoch you want to begin train model")
     parser.add_argument('--curstep',type=int, help="where step you want to begin train model")
     args = parser.parse_args()
@@ -54,6 +55,20 @@ vocab_path = args.vocab_path
 batch_size = args.batch_size
 epoch = args.epoch
 each_steps = args.each_steps
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+file_handler = logging.FileHandler(filename=args.log_path,mode='w')
+#file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+
+# 创建一个handler，用于将日志输出到控制台
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG)
+#console.setFormatter(formatter)
+logger.addHandler(console)
+
+
 # Initializing a BERT bert-base-uncased style configuration
 configuration = BertConfig(
     vocab_size=68181,  # SougouBertVocab共68181个词汇，它们是过滤了Sougou语料词频不大于6*1e-7的词后，与Bert自带的vocab取交集
@@ -89,7 +104,10 @@ else:
 train_dataset = MyDataset(data_path, n_raws=1000, shuffle=False)
 
 time0 = time.time()
-optimizer = AdamW(model.parameters(), lr=1e-5)
+optimizer = AdamW(model.parameters(), lr=0.5*1e-5)
+
+logger.info("The train model is : %s"%args.load_model)
+logger.info("The logger information is saved in : %s"%args.log_path)
 
 if args.curepoch:
     curepoch = args.curepoch
@@ -107,7 +125,7 @@ for ee in range(epoch):
     step = 0    
     train_dataset.initial()
     train_iter = Data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-    print("\t epoch = %d"%ee)
+    logger.info("\t epoch = %d"%ee)
     for gg, data in enumerate(train_iter):
         step += 1
         if gg < curstep:
@@ -122,9 +140,9 @@ for ee in range(epoch):
         loss = outputs.loss.mean() if multi_gpu else outputs.loss
         logits = outputs.logits
         optimizer.state.get("")
-        if gg%(0.01*each_steps)==0:
+        if gg%(0.1*each_steps)==0:
             time1 = time.time()
-            print('\t batch = %d \t loss = %.5f \t cost_time = %.3fs'%(gg,loss.item(),time1-time0))
+            logger.info('\t batch = %d \t loss = %.5f \t cost_time = %.3fs'%(gg,loss.item(),time1-time0))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
