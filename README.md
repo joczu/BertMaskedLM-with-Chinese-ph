@@ -1,11 +1,7 @@
-# BERT_LanguageModel
-
-# 项目主要贡献人员：桑俞，轼子
-# 文档撰写：轼子
-# 编辑时间：21-06-08
+# BERT_MASKED_LanguageModel
 
 # 描述
-该模型基于Transformers中的BertForMaskLM建立，前期的tokenize，train，dataprocess等工作是由桑榆完成，后期的模型训练，模型测试，数据准备，词汇建立等工作由轼子完成。该模型通过jieba分词，下载了搜狗新闻数据，使用结巴分词对语料进行按词切分，然后使用Bert模型进行训练，依据bert模型的mask规则，一个语料数据中，除去特殊词汇，'[CLS]','[SEP]','[UNK]','[PAD]'以外，对剩下的（即能够有效利用）的词汇进行mask，mask的规则是15%的概率被mask，而对于所有的被mask的词汇，采用下述规则\
+该模型基于Transformers中的BertForMaskLM , 该模型通过jieba分词，下载了搜狗新闻数据，使用结巴分词对语料进行按词切分，然后使用Bert模型进行训练，依据bert模型的mask规则，一个语料数据中，除去特殊词汇，'[CLS]','[SEP]','[UNK]','[PAD]'以外，对剩下的（即能够有效利用）的词汇进行mask，mask的规则是15%的概率被mask，而对于所有的被mask的词汇，采用下述规则\
 - 80%的词汇使用特殊token[MASK]
 - 10%的词汇使用词典中另一词随机替代
 - 10%的词汇保留原词\
