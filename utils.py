@@ -263,7 +263,89 @@ def draw_boxvioplot(ppl,filename:str=None, group:int=30, isLog=True, Tvalue:floa
         plt.savefig(name+'.png')
     plt.show()
 
+def bertshow_predict_vs_actual(inputs, labels, outputs, 
+                           transfer = tokenizer.tokenizer.convert_ids_to_tokens):
+    '''
+    function show_predict_vs_actual can generate markdown format string for 
+        better showing our train or test effect.
+    Parameters
+    ----------
+    inputs : TYPE --> your dataloader element.
+        DESCRIPTION. --> empty
+    labels : TYPE --> your dataloader element. 
+        DESCRIPTION.
+    outputs : TYPE --> result that your inputs and labels pass through model. 
+        DESCRIPTION.
+    transfer : TYPE --> function
+        DESCRIPTION. The default is tokenizer.tokenizer.convert_ids_to_tokens.
+    Returns
+    -------
+    info2 : TYPE --> string 
+        DESCRIPTION : info2 is markdown string, it can't identified as table by
+        tensorboard.
+    '''
+    
+    ind = torch.ones_like(labels)
+    for kk in range(args.batchsize):
+        ind[kk] *= kk
+    ind = torch.where(labels != -100, ind, labels)
+    ind = ind[ind != -100]
+    ind = [i.item() for i in ind]
+    score = torch.softmax(outputs.logits[labels != -100],-1)
+    score = score.max(-1).values
+    score = score.tolist()
+    masked_pre = outputs.logits[labels != -100].max(-1).indices
+    masked_label = labels[labels != -100]
+    info = list(zip(ind,transfer(masked_pre),score,transfer(masked_label)))
+    translist = list(map(transfer, inputs['input_ids']))
+    translist = [[j for j in i if j != '[PAD]'] for i in translist]
+    for i0,i1 in enumerate(translist):
+        i1.append(' :')
+        for j0,j1,j2,j3 in info:
+            if i0==j0:
+                i1.append((j1,j2,j3))
+    info2 = ''    
+    for i in translist:
+        flag = 0
+        keyind = i.index(' :')
+        if keyind == len(i)-1:
+            first = '&nbsp;&nbsp;'.join(i[:keyind])
+            jm = ''
+            flag -= 1
+        else:
+            first = '&nbsp;&nbsp;'.join(i[:keyind])
+            second = i[keyind+1:]
+            jm = ''
+            for kt,(j0,j1,j2) in enumerate(second):
+                if j0 != j2:
+                    flag += 1 
+                if kt==0:
+                    jm += '| **PREDICT** | **ACTUAL** |\n| :---: | :---: |\n'
+                jm += '| %s(%.3f%%) | %s  |\n'%(j0,j1*100,j2)
+                
+                    # jm += '||<strong>预测:%s'%j0 + '(prob:%.5f)'%j1 + ' vs 实际:%s</strong>'%j2 
+        if flag == 0:
+            info2 += '<p><strong>Sentence ✅:</strong>&nbsp;&nbsp;'+first +'</p>' + jm
+        elif flag>0:
+            info2 += '<p><strong>Sentence ❌:</strong>&nbsp;&nbsp;'+first +'</p>' + jm                            
+        elif flag<0:
+            info2 += '<p><strong>Sentence ⭕️:</strong>&nbsp;&nbsp;'+first +'</p>' + jm                                                       
+    return info2
 
+def gptshow_predict_vs_actual(inputs, labels, outputs, 
+                           transfer = tokenizer.tokenizer.convert_ids_to_tokens):
+    
+    translist = list(map(transfer, inputs))
+    # labelist  = list(map(transfer, labels))
+    # translist = [[j for j in i if j !='[PAD]'] for i in translist]
+    # labelist  = [[j for j in i if j !='[PAD]'] for i in labelist]
+    _,pre = outputs.logits.max(-1)
+    prelist = list(map(transfer, pre))
+    info = ''
+    for i,j in zip(translist,prelist):
+        info += ' '.join(i) + '  \n' + ' '.join(j)
+        info += '***'
+    return info
 
 
 def top_accuracy(mask_token_logits,real_idx,k):
